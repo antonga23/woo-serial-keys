@@ -2,7 +2,6 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-
 // Extract variables for use in template
 extract($view_data);
 ?>
@@ -57,36 +56,4 @@ extract($view_data);
         <?php endif; ?>
     </div>
 
-    <div class="platforms-section" style="margin-top: 30px;">
-        <h2>Platforms</h2>
-        <?php $this->display_platforms(); ?>
-    </div>
-
-    <div class="platforms-fetch-section" style="margin-top: 30px;">
-        <h2>Fetch Platforms</h2>
-        <form action="<?php echo esc_url($admin_post_url); ?>" method="post">
-            <input type="hidden" name="action" value="fetch_cw_platforms">
-            <?php wp_nonce_field('fetch_cw_platforms_nonce'); ?>
-            <?php submit_button('Fetch Platforms', 'secondary', 'fetch_platforms', false); ?>
-        </form>
-    </div>
-
-    <div class="products-section" style="margin-top: 30px;">
-        <h2>Products</h2>
-        <?php $this->display_products(); ?>
-    </div>
-
-    <div class="products-fetch-section" style="margin-top: 30px;">
-        <h2>Fetch Products</h2>
-        <form action="<?php echo esc_url($admin_post_url); ?>" method="post">
-            <input type="hidden" name="action" value="fetch_cw_products">
-            <?php wp_nonce_field('fetch_cw_products_nonce'); ?>
-            <p>inStockDaysAgo: <input type="number" name="inStockDaysAgo" min="0" max="60"></p>
-            <p>language: <input type="text" name="language"></p>
-            <p>region: <input type="text" name="region"></p>
-            <p>platform: <input type="text" name="platform"></p>
-            <p>productIds (comma-separated): <input type="text" name="productIds"></p>
-            <?php submit_button('Fetch Products', 'secondary', 'fetch_products', false); ?>
-        </form>
-    </div>
 </div>

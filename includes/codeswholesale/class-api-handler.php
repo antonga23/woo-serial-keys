@@ -26,31 +26,49 @@ class WC_CodesWholesale_API_Handler {
         $this->logger = $logger;
     }
 
-    private function get_api_url($endpoint) {
+    private function get_api_url($endpoint, $version = 'v2') {
         $base_url = $this->sandbox_mode ? 
             'https://sandbox.codeswholesale.com' : 
             'https://api.codeswholesale.com';
-        return $base_url . '/v2/' . ltrim($endpoint, '/');
+        
+        // If endpoint already includes version prefix, use it as-is
+        if (preg_match('#^/?v\d+/#', $endpoint)) {
+            return $base_url . '/' . ltrim($endpoint, '/');
+        }
+        
+        // If version is empty or false, don't add version prefix
+        if (empty($version)) {
+            return $base_url . '/' . ltrim($endpoint, '/');
+        }
+        
+        // Add specified version prefix
+        return $base_url . '/' . trim($version, '/') . '/' . ltrim($endpoint, '/');
+    }
+
+    private function log($message, $level = 'info')
+    {
+        if ($this->logger) {
+            $context = array('source' => 'woo-digital-keys-integration');
+            $this->logger->log($level, $message, $context);
+        }
     }
 
     public function generate_access_token() {
-        $token_url = $this->get_api_url('oauth/token');
-        
+        $token_url = $this->get_api_url('oauth/token', false); // No version prefix
         $args = array(
             'method' => 'POST',
-            'headers' => array(
-                'Authorization' => 'Basic ' . base64_encode($this->client_id . ':' . $this->client_secret),
-                'Content-Type' => 'application/x-www-form-urlencoded'
-            ),
+            'timeout' => 45,
             'body' => array(
-                'grant_type' => 'client_credentials'
+                'grant_type' => 'client_credentials',
+                'client_id' => $this->client_id,
+                'client_secret' => $this->client_secret
             )
         );
 
         $response = wp_remote_post($token_url, $args);
 
         if (is_wp_error($response)) {
-            $this->logger->log('error', 'Failed to generate access token: ' . $response->get_error_message());
+            $this->log('Token generation failed: ' . $response->get_error_message(), 'error');
             return false;
         }
 
@@ -59,6 +77,7 @@ class WC_CodesWholesale_API_Handler {
         if (isset($body['access_token'])) {
             update_option('wc_codeswholesale_access_token', $body['access_token']);
             update_option('wc_codeswholesale_token_expiry', time() + $body['expires_in']);
+            $this->log('Access token generated successfully');
             return $body['access_token'];
         }
 
@@ -97,7 +116,7 @@ class WC_CodesWholesale_API_Handler {
         $response = wp_remote_request($this->get_api_url($endpoint), $args);
 
         if (is_wp_error($response)) {
-            $this->logger->log('error', 'API request failed: ' . $response->get_error_message());
+            $this->log('API request failed: ' . $response->get_error_message(), 'error');
             return array('success' => false, 'message' => $response->get_error_message());
         }
 
@@ -105,6 +124,7 @@ class WC_CodesWholesale_API_Handler {
         $code = wp_remote_retrieve_response_code($response);
 
         if ($code >= 200 && $code < 300) {
+            $this->log('API request successful' . 'Endpoint' . $endpoint, 'info');
             return array('success' => true, 'data' => $body);
         }
 
